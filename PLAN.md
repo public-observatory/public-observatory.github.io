@@ -7,7 +7,9 @@
 - Done: steps 7 to 9, the page: sign-in, private entries, the Private badge, dispatch by `data-page`, and the security policy; tested in `tests/signin.test.cjs`. The policy has not yet been checked in a real browser.
 - Done: the README paragraph on private agendas, and the Docs page's instructions for making an agenda private.
 - Done: the setup. The App is `github.com/apps/public-observatory` (client id `Iv23li2HrD8GWOljxqVG`, read-only Contents and Metadata), and the exchange is live at `https://observatory-auth.observatory-auth-setup.workers.dev/token`; both are wired into `SIGNIN`, connect-src and `auth/wrangler.toml`.
-- Next: the template's workflow (step 4), in the template repository; then the end-to-end check by hand (see Verification).
+- Done: step 4, the workflow `.github/workflows/observatory.yml` in `agenda-template` (8b19b4a). In the private test repository `public-observatory/test-private-agenda` it built the entry on a push and rebuilt it, within a minute, when a problem was opened.
+- Done: signing in on the live site, by hand.
+- Next: install the App on the test repository and check, signed in and signed out, that the agenda is shown, marked Private, only to its readers.
 
 ## Context
 
