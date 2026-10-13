@@ -6,7 +6,7 @@ const { runInContext } = require('node:vm');
 const { JSDOM } = require('jsdom');
 
 async function render(text, questions = []) {
-  const dom = new JSDOM('<main id="main"></main>', {
+  const dom = new JSDOM('<body data-page="agenda"><main id="main"></main></body>', {
     url: 'https://observatory.example/agenda.html?repo=Lab/relu-fibres',
     runScripts: 'outside-only',
   });
@@ -22,7 +22,7 @@ async function render(text, questions = []) {
     },
   };
   dom.window.fetch = async () => ({ ok: true, json: async () => ({ agendas: [entry] }) });
-  // Load the actual page's scripts in order, including its agenda() entry point.
+  // Load the actual page's scripts in order; observatory.js starts the page that <body> names.
   const html = readFileSync(resolve(__dirname, '../site/agenda.html'), 'utf8');
   for (const match of html.matchAll(/<script(?: src="([^"]+)")?>([\s\S]*?)<\/script>/g)) {
     if (match[1]?.startsWith('https:')) continue; // KaTeX is independent of footnote parsing.

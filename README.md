@@ -12,6 +12,8 @@ A public index of research agendas: questions, with their motivation and their d
 
 **The index is the topic.** Every public repository with the topic `observatory-agenda` is listed, wherever it lives, so that no one controls admission. Every hour, `site/build.py` searches GitHub for the topic, reads each agenda's `agenda.json` and issues, and writes `agendas.json`; the static pages in `site/` render it. An agenda whose files cannot be read is left out and reported.
 
+**Private agendas are seen only by those who can read them.** A private repository with the topic never enters `agendas.json`, which anyone can read. Its own workflow runs `site/build.py snapshot` on each change to its issues and keeps the result, one entry of the index, in its branch `observatory`. A visitor who signs in with GitHub sees, beside the public index, the private agendas whose repositories they can read and on which the Observatory's GitHub App is installed; the page reads each entry directly from GitHub with the visitor's own token. Signing in needs one hosted piece, `auth/worker.js`, which exchanges GitHub's sign-in code for a token using the App's client secret and stores nothing.
+
 ## Layout
 
 ```

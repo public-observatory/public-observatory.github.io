@@ -3,6 +3,7 @@
 // Text from issues is untrusted, so it is only ever inserted as
 // text, never as HTML. Mathematics in it, written as LaTeX between $...$ or $$...$$, is then typeset by
 // KaTeX, which builds its own markup from the text and, with `trust` off, follows no links.
+// A signed-in visitor also sees the private agendas they can read, fetched from GitHub with their own token.
 "use strict";
 
 const Observatory = (() => {
@@ -175,6 +176,153 @@ const Observatory = (() => {
     }
   }
 
+  // ------------------------------------------------------------------ signing in
+
+  // The GitHub App's client id and the address of its token exchange (auth/worker.js). Until both are set,
+  // no one is offered sign-in. The exchange's origin must also be in each page's connect-src.
+  const SIGNIN = { client: "", exchange: "" };
+  const TOPIC = "observatory-agenda";
+  const KEY = { state: "observatory.state", back: "observatory.back", token: "observatory.token",
+    refresh: "observatory.refresh", login: "observatory.login", private: "observatory.private" };
+
+  // Storage may be refused, in a private window or with site data blocked; the page then works signed out.
+  // The refresh token is kept across visits; the access token and anything private only for the session.
+  function stored(area, key, value) {
+    try {
+      const s = window[area];
+      if (value === undefined) return s.getItem(key);
+      if (value === null) s.removeItem(key); else s.setItem(key, value);
+    } catch { return null; }
+  }
+  const signedIn = () => !!(stored("localStorage", KEY.refresh) || stored("sessionStorage", KEY.token));
+
+  function signIn() {
+    const state = crypto.randomUUID();
+    stored("sessionStorage", KEY.state, state);
+    stored("sessionStorage", KEY.back, location.href);
+    location.assign(`https://github.com/login/oauth/authorize?${new URLSearchParams({
+      client_id: SIGNIN.client, state, redirect_uri: new URL("./", location.href).href })}`);
+  }
+
+  function signOut() {
+    stored("localStorage", KEY.refresh, null);
+    for (const k of [KEY.token, KEY.login, KEY.private]) stored("sessionStorage", k, null);
+  }
+
+  // A code or refresh token, exchanged for a token. GitHub's refusal ends the session; an exchange that
+  // cannot be reached does not, so that an outage does not sign everyone out.
+  async function exchange(grant) {
+    let data;
+    try {
+      const r = await fetch(SIGNIN.exchange, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(grant) });
+      data = await r.json();
+    } catch (e) {
+      console.error("sign-in exchange unavailable", e);
+      return null;
+    }
+    if (!data.access_token) {
+      signOut();
+      return null;
+    }
+    stored("sessionStorage", KEY.token, data.access_token);
+    if (data.refresh_token) stored("localStorage", KEY.refresh, data.refresh_token);
+    return data.access_token;
+  }
+
+  // GitHub returns here with ?code&state. The state must be the one this browser sent, so that no other
+  // site can sign a visitor in to an account of its choosing. True if the page is leaving for where sign-in began.
+  async function arrive() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get("code"), state = params.get("state");
+    if (!code) return false;
+    const expected = stored("sessionStorage", KEY.state), back = stored("sessionStorage", KEY.back);
+    stored("sessionStorage", KEY.state, null);
+    params.delete("code");
+    params.delete("state");
+    history.replaceState(null, "", location.pathname + (params.size ? `?${params}` : "") + location.hash);
+    if (!expected || state !== expected) return false;
+    stored("sessionStorage", KEY.private, null);
+    await exchange({ code });
+    if (back && new URL(back).origin === location.origin && back !== location.href) {
+      location.replace(back);
+      return true;
+    }
+    return false;
+  }
+
+  // A refresh token is good for one use, so requests that need a new token at once share one exchange.
+  let renewing = null;
+  function renew() {
+    const refresh = stored("localStorage", KEY.refresh);
+    if (!refresh) return Promise.resolve(null);
+    return renewing ||= exchange({ refresh_token: refresh }).finally(() => { renewing = null; });
+  }
+
+  // The GitHub API as the visitor. A token past its eight hours is renewed once; if that fails, the visitor is signed out.
+  async function api(path, accept = "application/vnd.github+json") {
+    for (const again of [false, true]) {
+      const token = (!again && stored("sessionStorage", KEY.token)) || await renew();
+      if (!token) throw new Error("not signed in");
+      const r = await fetch(`https://api.github.com${path}`, { headers: { Authorization: `Bearer ${token}`, Accept: accept } });
+      if (r.status === 401 && !again) continue;
+      if (r.status === 401) signOut();
+      if (!r.ok) throw new Error(`${path}: ${r.status}`);
+      return r.json();
+    }
+  }
+
+  async function listing(path, key) {
+    const out = [];
+    for (let page = 1; page <= 10; page++) {
+      const batch = (await api(`${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`))[key];
+      out.push(...batch);
+      if (batch.length < 100) break;
+    }
+    return out;
+  }
+
+  // The private agendas the visitor can read: repositories with the topic on which the Observatory's App is
+  // installed. Each keeps its entry, built by its own workflow with build.py, in its branch `observatory`. An
+  // entry that names another repository than its own is refused, so that no agenda can pass for another.
+  async function privateEntries() {
+    if (!signedIn()) return [];
+    const cached = stored("sessionStorage", KEY.private);
+    if (cached) return JSON.parse(cached);
+    const repos = [];
+    for (const i of await listing("/user/installations", "installations"))
+      repos.push(...await listing(`/user/installations/${i.id}/repositories`, "repositories"));
+    const entries = await Promise.all(repos.filter((r) => r.private && (r.topics || []).includes(TOPIC)).map(async (r) => {
+      try {
+        const e = await api(`/repos/${r.full_name}/contents/entry.json?ref=observatory`, "application/vnd.github.raw+json");
+        if (e.repo !== r.full_name) throw new Error(`entry.json names ${e.repo}`);
+        return { ...e, private: true };
+      } catch (err) {
+        console.warn(`private agenda ${r.full_name} skipped: ${err.message}`);
+        return null;
+      }
+    }));
+    const out = entries.filter(Boolean);
+    stored("sessionStorage", KEY.private, JSON.stringify(out));
+    return out;
+  }
+
+  // The last item of the site's navigation: sign in, or the visitor's login and sign out.
+  async function control() {
+    const nav = document.querySelector("nav.site");
+    if (!nav || !(SIGNIN.client && SIGNIN.exchange) && !signedIn()) return;
+    if (!signedIn()) {
+      nav.append(h("button", { type: "button", class: "signin", onclick: signIn }, "Sign in"));
+      return;
+    }
+    let login = stored("sessionStorage", KEY.login);
+    if (!login) {
+      try { login = (await api("/user")).login; } catch { login = ""; }
+      if (login) stored("sessionStorage", KEY.login, login);
+    }
+    nav.append(h("button", { type: "button", class: "signin", title: login ? `Signed in to GitHub as ${login}` : null,
+      onclick: () => { signOut(); location.reload(); } }, login ? `${login} · Sign out` : "Sign out"));
+  }
+
   // ------------------------------------------------------------------ the index
 
   const stamp = (iso) => iso ? iso.slice(0, 16).replace("T", " ") + " UTC" : "";
@@ -224,7 +372,7 @@ const Observatory = (() => {
       return h("li", { class: "entry" },
         h("div", { class: "entry-no", "aria-hidden": "true" }),
         h("div", {},
-          h("div", { class: "entry-kind" }, h("span", { class: "badge" }, KIND[a.kind] || a.kind), " · ", e.repo.split("/")[0]),
+          h("div", { class: "entry-kind" }, h("span", { class: "badge" }, KIND[a.kind] || a.kind), e.private && [" · ", h("span", { class: "badge private" }, "Private")], " · ", e.repo.split("/")[0]),
           h("h3", {}, h("a", { href: `agenda.html?repo=${encodeURIComponent(e.repo)}` }, a.title)),
           h("p", { class: "question" }, rich(a.question, false)),
           h("p", { class: "summary" }, rich(a.summary, false)),
@@ -268,6 +416,17 @@ const Observatory = (() => {
     }
     render();
     if (data.built) document.getElementById("built").append(` Index built ${stamp(data.built)}.`);
+    // The public index is shown at once; the private agendas join it when GitHub has answered.
+    try {
+      const known = new Set(data.agendas.map((e) => e.repo));
+      const more = (await privateEntries()).filter((e) => !known.has(e.repo));
+      if (more.length) {
+        data.agendas = [...data.agendas, ...more];
+        render();
+      }
+    } catch (e) {
+      console.error("private agendas unavailable", e);
+    }
   }
 
   // ------------------------------------------------------------------ one agenda
@@ -314,10 +473,15 @@ const Observatory = (() => {
     let data, entry;
     try {
       data = await json("agendas.json");
-      entry = data.agendas.find((e) => e.repo === repo);
-      if (!entry) throw new Error("no such agenda in the index");
+      entry = data.agendas.find((e) => e.repo === repo) || (await privateEntries()).find((e) => e.repo === repo);
     } catch (e) {
       main.replaceChildren(h("p", { class: "empty" }, `This agenda could not be loaded (${e.message}).`));
+      return;
+    }
+    if (!entry) {
+      const offer = !signedIn() && SIGNIN.client && SIGNIN.exchange;
+      main.replaceChildren(h("p", { class: "empty" }, "This agenda is not in the public index.",
+        offer ? [" If it is private, ", h("button", { type: "button", class: "link", onclick: signIn }, "sign in with GitHub"), " to see it."] : ""));
       return;
     }
     document.title = `${entry.agenda.title} · The Public Observatory`;
@@ -356,7 +520,7 @@ const Observatory = (() => {
     const by = (i) => h("span", {}, i.author, " · ", link(i), i.created ? ` · ${ago(i.created)}` : "");
 
     const head = h("header", { class: "agenda-head" },
-      h("span", { class: "badge" }, KIND[a.kind] || a.kind),
+      h("span", { class: "badge" }, KIND[a.kind] || a.kind, entry.private ? " · Private" : ""),
       h("h1", {}, a.title),
       h("p", { class: "question" }, rich(a.question)),
       h("p", { class: "summary" }, rich(a.summary)));
@@ -430,5 +594,15 @@ const Observatory = (() => {
       h("div", { class: "body" }, readmeSection(entry.readme, github, a.title), tree, claims))];
   }
 
-  return { index, agenda, page };
+  // Each page names itself, and the Markdown it shows, in attributes of <body>, so that it needs no inline script.
+  async function start() {
+    const { page: name, content } = document.body.dataset;
+    if (!name || await arrive()) return;
+    control();
+    await Promise.all([content && page(content), name === "index" && index(), name === "agenda" && agenda()]);
+  }
+
+  return { index, agenda, page, start };
 })();
+
+Observatory.start();

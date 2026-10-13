@@ -22,7 +22,7 @@ uv run --no-project --python 3.10 python -m unittest discover -s tests   # the o
 - `site/marked.js`, `marked-footnote.js`, `purify.js`: vendored Markdown renderer and sanitiser, with their licences in the files. Do not edit them; update by replacing the file and the version in `README.md`.
 - `agenda-template/`: a new agenda's repository, published as the template repository `Public-Observatory/agenda-template`. Its issue forms (Problem, Claim) have headings that `build.fields` parses; change both together.
 - `agendas/`: example agendas for local previews and tests.
-- `tests/test_site.py`, `tests/markdown.test.cjs`, `tests/auth.test.cjs`: the schema, issues read as problems and claims, the ways of building the index and a snapshot, the rendering of Markdown, and the token exchange.
+- `tests/test_site.py`, `tests/markdown.test.cjs`, `tests/auth.test.cjs`, `tests/signin.test.cjs`: the schema, issues read as problems and claims, the ways of building the index and a snapshot, the rendering of Markdown, the token exchange, and signing in with the private agendas it reveals.
 
 ## Invariants
 

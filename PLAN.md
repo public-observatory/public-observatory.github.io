@@ -4,7 +4,9 @@
 
 - Done: steps 1 to 3, with their tests (`tests/test_site.py`), and the `snapshot` command in the README.
 - Done: step 6, the Worker (`auth/`), its tests (`tests/auth.test.cjs`) and its deployment, which waits on the variable `OBSERVATORY_AUTH`; the invariant in `CLAUDE.md`.
-- Next: the page (steps 7 to 9); then the template's workflow (step 4), in the template repository.
+- Done: steps 7 to 9, the page: sign-in, private entries, the Private badge, dispatch by `data-page`, and the security policy; tested in `tests/signin.test.cjs`. The policy has not yet been checked in a real browser.
+- Done: the README paragraph on private agendas. Held back: the Docs page's instructions, which name the App, until the App exists.
+- Next: the template's workflow (step 4), in the template repository; then the setup below, after which `SIGNIN` in `site/observatory.js` and connect-src in the four pages receive the client id and the Worker's address.
 - Waiting on setup: the GitHub App and the Cloudflare account (see the last section).
 
 ## Context
