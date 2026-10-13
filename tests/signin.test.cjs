@@ -68,7 +68,7 @@ test('a signed-in visitor sees the private agendas they can read, marked as such
     // entry that names another repository are all left out.
     assert.deepEqual(titles, ['Both, public', 'Open', 'Secret']);
     const secret = [...doc.querySelectorAll('.entry')].find((e) => e.textContent.includes('Secret'));
-    assert.equal(secret.querySelector('.badge.private').textContent, 'Private');
+    assert.equal(secret.querySelector('.badge.private').textContent, 'Private agenda');
     assert.equal(doc.querySelectorAll('.badge.private').length, 1);
     assert.ok(warnings.some((w) => /Lab\/liar.*names Lab\/secret/.test(w)));
     for (const c of calls.filter((c) => c.url.startsWith(API))) assert.equal(c.init.headers.Authorization, 'Bearer tok');
@@ -92,7 +92,7 @@ test('a private agenda has its own page for those who can read it', async () => 
   let { dom, doc } = await open('agenda.html', url, github(), { session: { 'observatory.token': 'tok' } });
   try {
     assert.equal(doc.querySelector('h1').textContent, 'Secret');
-    assert.equal(doc.querySelector('.agenda-head .badge').textContent, 'Open agenda · Private');
+    assert.equal(doc.querySelector('.agenda-head .badge').textContent, 'Private agenda');
   } finally { dom.window.close(); }
   ({ dom, doc } = await open('agenda.html', url, github()));
   try {

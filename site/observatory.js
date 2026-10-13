@@ -29,6 +29,8 @@ const Observatory = (() => {
   const plural = (n, word, many) => `${n} ${noun(n, word, many)}`;
   const mark = (state) => h("span", { class: `mark s-${state}`, title: state }, MARK[state] ?? "·");
   const chip = (state) => h("span", { class: `status s-${state}` }, state);
+  // A private agenda is labelled as such rather than by its kind: "Open agenda · Private" reads as a contradiction.
+  const kind = (e) => e.private ? h("span", { class: "badge private" }, "Private agenda") : h("span", { class: "badge" }, KIND[e.agenda.kind] || e.agenda.kind);
   const safe = (url) => (/^https:\/\//.test(url || "") ? url : null);
 
   // Markdown links [text](https://...) in untrusted text become anchors, and only https links do; any other
@@ -357,7 +359,7 @@ const Observatory = (() => {
       empty.textContent = "The index could not be loaded.";
       return;
     }
-    const state = { q: params.get("q") || "", kind: params.get("kind") || "", sort: sort.value };
+    const state = { q: params.get("q") || "", sort: sort.value };
     const progress = (s) => (s.questions ? s.answered / s.questions : 0);
     const open = (s) => s.questions - s.answered;
     const order = {
@@ -372,7 +374,7 @@ const Observatory = (() => {
       return h("li", { class: "entry" },
         h("div", { class: "entry-no", "aria-hidden": "true" }),
         h("div", {},
-          h("div", { class: "entry-kind" }, h("span", { class: "badge" }, KIND[a.kind] || a.kind), e.private && [" · ", h("span", { class: "badge private" }, "Private")], " · ", e.repo.split("/")[0]),
+          h("div", { class: "entry-kind" }, kind(e), " · ", e.repo.split("/")[0]),
           h("h3", {}, h("a", { href: `agenda.html?repo=${encodeURIComponent(e.repo)}` }, a.title)),
           h("p", { class: "question" }, rich(a.question, false)),
           h("p", { class: "summary" }, rich(a.summary, false)),
@@ -388,7 +390,6 @@ const Observatory = (() => {
     function render() {
       const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       const shown = data.agendas
-        .filter((e) => !state.kind || e.agenda.kind === state.kind)
         .filter((e) => {
           const text = [e.agenda.title, e.agenda.question, e.agenda.summary, ...(e.agenda.tags || [])].join(" ").toLowerCase();
           return words.every((w) => text.includes(w));
@@ -406,14 +407,6 @@ const Observatory = (() => {
     search.value = state.q;
     search.addEventListener("input", (ev) => { state.q = ev.target.value; render(); });
     sort.addEventListener("change", (ev) => { state.sort = ev.target.value; render(); });
-    for (const b of document.querySelectorAll(".chip")) {
-      b.setAttribute("aria-pressed", String(b.dataset.kind === state.kind));
-      b.addEventListener("click", () => {
-        state.kind = b.dataset.kind;
-        for (const o of document.querySelectorAll(".chip")) o.setAttribute("aria-pressed", String(o === b));
-        render();
-      });
-    }
     render();
     if (data.built) document.getElementById("built").append(` Index built ${stamp(data.built)}.`);
     // The public index is shown at once; the private agendas join it when GitHub has answered.
@@ -520,7 +513,7 @@ const Observatory = (() => {
     const by = (i) => h("span", {}, i.author, " · ", link(i), i.created ? ` · ${ago(i.created)}` : "");
 
     const head = h("header", { class: "agenda-head" },
-      h("span", { class: "badge" }, KIND[a.kind] || a.kind, entry.private ? " · Private" : ""),
+      kind(entry),
       h("h1", {}, a.title),
       h("p", { class: "question" }, rich(a.question)),
       h("p", { class: "summary" }, rich(a.summary)));
