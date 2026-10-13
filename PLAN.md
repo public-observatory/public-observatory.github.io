@@ -9,7 +9,8 @@
 - Done: the setup. The App is `github.com/apps/public-observatory` (client id `Iv23li2HrD8GWOljxqVG`, read-only Contents and Metadata), and the exchange is live at `https://observatory-auth.observatory-auth-setup.workers.dev/token`; both are wired into `SIGNIN`, connect-src and `auth/wrangler.toml`.
 - Done: step 4, the workflow `.github/workflows/observatory.yml` in `agenda-template` (8b19b4a). In the private test repository `public-observatory/test-private-agenda` it built the entry on a push and rebuilt it, within a minute, when a problem was opened.
 - Done: signing in on the live site, by hand.
-- Next: install the App on the test repository and check, signed in and signed out, that the agenda is shown, marked Private, only to its readers.
+- Done: with the App installed on the test repository, the agenda is shown, marked Private, to a signed-in reader and to no one signed out. The plan is complete.
+- Recorded for later: the hourly public build needs a GitHub App installation token once the index passes about 300 agendas.
 
 ## Context
 
