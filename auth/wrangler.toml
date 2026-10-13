@@ -7,10 +7,10 @@ workers_dev = true
 account_id = "92222f0d69f0e29b35aead2f32edfc7d"
 
 [vars]
-GITHUB_CLIENT_ID = "Iv23li2HrD8GWOljxqVG"
+GITHUB_CLIENT_ID = "Iv23li2HrD8GWOljxqVG"  # github.com/apps/public-observatory
 ORIGINS = "https://public-observatory.github.io"
 
 # `wrangler dev --env dev` also admits a local preview served by `python3 -m http.server`.
 [env.dev.vars]
-GITHUB_CLIENT_ID = "Iv23li2HrD8GWOljxqVG"
+GITHUB_CLIENT_ID = "Iv23li2HrD8GWOljxqVG"  # github.com/apps/public-observatory
 ORIGINS = "https://public-observatory.github.io http://localhost:8000"

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Scripts only from this site and cdnjs; requests only to this site and the GitHub API. Add the token exchange (SIGNIN.exchange in observatory.js) to connect-src when it is set. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<!-- Scripts only from this site and cdnjs; requests only to this site, the GitHub API and the token exchange (SIGNIN.exchange in observatory.js). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.github.com https://observatory-auth.observatory-auth-setup.workers.dev; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>The Public Observatory</title>
 <meta name="description" content="Marveling at the nightsky together.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.19.0/katex.min.css" integrity="sha512-ShgGHY1DxXgJ048WLBq4a1WB85Ppw9pb59F5waDdd/mAzSuKfCg4pzrsIECClh+1IhwY3ux6e4ZEbjw15y9kGQ==" crossorigin="anonymous">

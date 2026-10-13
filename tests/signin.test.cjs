@@ -8,6 +8,7 @@ const { JSDOM, VirtualConsole } = require('jsdom');
 
 const SITE = 'https://public-observatory.github.io/';
 const API = 'https://api.github.com';
+const EXCHANGE = 'https://observatory-auth.observatory-auth-setup.workers.dev/token';
 
 const agendaOf = (repo, title) => ({
   repo, url: `https://github.com/${repo}`, pushed: '2026-10-06T00:00:00Z', questions: [], claims: [], readme: null,
@@ -82,8 +83,7 @@ test('a visitor who is not signed in asks GitHub nothing', async () => {
   try {
     assert.equal(doc.querySelectorAll('.entry').length, 2);
     assert.deepEqual(calls.filter((c) => !c.url.endsWith('.json') && !c.url.endsWith('.md')), []);
-    // Until the App and the exchange are configured, no one is offered sign-in.
-    assert.equal(doc.querySelector('nav.site button.signin'), null);
+    assert.equal(doc.querySelector('nav.site button.signin').textContent, 'Sign in');
   } finally { dom.window.close(); }
 });
 
@@ -96,14 +96,14 @@ test('a private agenda has its own page for those who can read it', async () => 
   } finally { dom.window.close(); }
   ({ dom, doc } = await open('agenda.html', url, github()));
   try {
-    assert.equal(doc.querySelector('#main .empty').textContent, 'This agenda is not in the public index.');
+    assert.equal(doc.querySelector('#main .empty').textContent, 'This agenda is not in the public index. If it is private, sign in with GitHub to see it.');
   } finally { dom.window.close(); }
 });
 
 test('an expired token is renewed once for all requests, and a refused renewal signs out', async () => {
   const routes = github();
   let exchanges = 0;
-  routes[''] = (init) => { exchanges++; return [200, JSON.parse(init.body).refresh_token === 'r1' ? { access_token: 'tok2', refresh_token: 'r2' } : { error: 'bad_refresh_token' }]; };
+  routes[EXCHANGE] = (init) => { exchanges++; return [200, JSON.parse(init.body).refresh_token === 'r1' ? { access_token: 'tok2', refresh_token: 'r2' } : { error: 'bad_refresh_token' }]; };
   for (const key of Object.keys(routes).filter((k) => k.startsWith(API))) {
     const value = routes[key];
     routes[key] = (init) => (init.headers.Authorization === 'Bearer tok2' ? [200, value] : [401, { message: 'Bad credentials' }]);
@@ -124,7 +124,7 @@ test('an expired token is renewed once for all requests, and a refused renewal s
 test('GitHub\'s return is accepted only with the state this browser sent', async () => {
   const routes = github();
   const sent = [];
-  routes[''] = (init) => { sent.push(JSON.parse(init.body)); return [200, { access_token: 'tok', refresh_token: 'r1' }]; };
+  routes[EXCHANGE] = (init) => { sent.push(JSON.parse(init.body)); return [200, { access_token: 'tok', refresh_token: 'r1' }]; };
   const back = `${SITE}?q=primes`;
   let { dom } = await open('index.html', `${SITE}?q=primes&code=c1&state=s1`, routes, { session: { 'observatory.state': 's1', 'observatory.back': back } });
   try {

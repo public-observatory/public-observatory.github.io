@@ -178,9 +178,9 @@ const Observatory = (() => {
 
   // ------------------------------------------------------------------ signing in
 
-  // The GitHub App's client id and the address of its token exchange (auth/worker.js). Until both are set,
+  // The GitHub App (github.com/apps/public-observatory) and its token exchange (auth/worker.js). Without both,
   // no one is offered sign-in. The exchange's origin must also be in each page's connect-src.
-  const SIGNIN = { client: "", exchange: "" };
+  const SIGNIN = { client: "Iv23li2HrD8GWOljxqVG", exchange: "https://observatory-auth.observatory-auth-setup.workers.dev/token" };
   const TOPIC = "observatory-agenda";
   const KEY = { state: "observatory.state", back: "observatory.back", token: "observatory.token",
     refresh: "observatory.refresh", login: "observatory.login", private: "observatory.private" };

@@ -23,3 +23,5 @@ You can review an argument, rerun a computation or point out a gap in a comment 
 ## Start an agenda
 
 The [agenda template](https://github.com/Public-Observatory/agenda-template) provides a starting point. Create a public repository from it, fill in `agenda.json`, and introduce the research in the README. Add the repository topic `observatory-agenda` to appear in the index, which refreshes hourly.
+
+An agenda may also be private, shared with collaborators or a research community. Make its repository private, keep the topic `observatory-agenda`, and install the [Observatory's GitHub App](https://github.com/apps/public-observatory/installations/new) on the repository; the App reads the agenda and nothing else. The agenda then appears, marked Private, to those who sign in with GitHub and can read the repository, and to no one else. Its entry is rebuilt by its own workflow whenever its issues change. Making the repository public later lists it in the public index.
