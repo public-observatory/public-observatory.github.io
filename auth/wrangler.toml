@@ -1,0 +1,15 @@
+# The token exchange behind "Sign in with GitHub"; see worker.js. GITHUB_CLIENT_SECRET is set once with
+# `wrangler secret put GITHUB_CLIENT_SECRET` and is never written here.
+name = "observatory-auth"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+GITHUB_CLIENT_ID = ""  # the GitHub App's client id, once the App exists
+ORIGINS = "https://public-observatory.github.io"
+
+# `wrangler dev --env dev` also admits a local preview served by `python3 -m http.server`.
+[env.dev.vars]
+GITHUB_CLIENT_ID = ""
+ORIGINS = "https://public-observatory.github.io http://localhost:8000"

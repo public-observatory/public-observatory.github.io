@@ -16,16 +16,18 @@ uv run --no-project --python 3.10 python -m unittest discover -s tests   # the o
 
 - `site/agenda.py`: the schema of `agenda.json` and `check`, which each agenda's pull requests run.
 - `site/build.py`: builds `agendas.json` from GitHub (repositories with the topic `observatory-agenda`, their `agenda.json`, README and issues) or from local directories. Network access goes through an injectable `get`, so tests use a dict.
+- `auth/worker.js`: the Cloudflare Worker that exchanges a GitHub sign-in code, or a refresh token, using the GitHub App's client secret; deployed by `.github/workflows/auth.yml`.
 - `site/*.html`, `observatory.js`, `observatory.css`: the static pages, which render `agendas.json` and compute nothing the index does not say. Layout, navigation and page titles live in the HTML.
 - `site/content/*.md`: the prose of the home, About and Docs pages, loaded by the pages as Markdown. Edit the text here, not in the HTML.
 - `site/marked.js`, `marked-footnote.js`, `purify.js`: vendored Markdown renderer and sanitiser, with their licences in the files. Do not edit them; update by replacing the file and the version in `README.md`.
 - `agenda-template/`: a new agenda's repository, published as the template repository `Public-Observatory/agenda-template`. Its issue forms (Problem, Claim) have headings that `build.fields` parses; change both together.
 - `agendas/`: example agendas for local previews and tests.
-- `tests/test_site.py`, `tests/markdown.test.cjs`: the schema, issues read as problems and claims, both ways of building the index, and the rendering of Markdown.
+- `tests/test_site.py`, `tests/markdown.test.cjs`, `tests/auth.test.cjs`: the schema, issues read as problems and claims, the ways of building the index and a snapshot, the rendering of Markdown, and the token exchange.
 
 ## Invariants
 
-- Git and GitHub are the only infrastructure: no server, no database, no hosted service of our own. The website is static.
+- Git and GitHub are the only infrastructure: no server, no database, no hosted service of our own beyond `auth/`, a stateless token exchange that stores nothing. The website is static.
+- A private agenda never enters `agendas.json`. Its own workflow builds its entry with `build.py snapshot`, and the page reads it with the signed-in visitor's token.
 - One broken agenda never takes the index down: it is skipped and reported.
 - Text from issues, READMEs and agenda files is untrusted. The pages insert it only as text or as sanitised Markdown, never as raw HTML, and follow only `https://` links from it. Mathematics in it, written in LaTeX between `$...$` or `$$...$$`, is typeset by KaTeX from cdnjs, with `trust` off; without KaTeX the LaTeX is shown as written.
 - Python is standard library only, 3.10+. The pages have no build step; Node is used only to test them.

@@ -1,0 +1,24 @@
+# The token exchange behind "Sign in with GitHub" (auth/worker.js), deployed to Cloudflare Workers.
+# It runs only once the repository variable OBSERVATORY_AUTH is `true`, after the secret
+# CLOUDFLARE_API_TOKEN is set and the Worker's GITHUB_CLIENT_SECRET has been put with wrangler.
+name: auth
+on:
+  push:
+    branches: [main]
+    paths: [auth/**]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: auth
+  cancel-in-progress: true
+jobs:
+  deploy:
+    if: vars.OBSERVATORY_AUTH == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: auth

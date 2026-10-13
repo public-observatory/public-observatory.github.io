@@ -3,7 +3,8 @@
 ## Progress
 
 - Done: steps 1 to 3, with their tests (`tests/test_site.py`), and the `snapshot` command in the README.
-- Next: the Worker (step 6) and its tests; then the page (steps 7 to 9); then the template's workflow (step 4), in the template repository.
+- Done: step 6, the Worker (`auth/`), its tests (`tests/auth.test.cjs`) and its deployment, which waits on the variable `OBSERVATORY_AUTH`; the invariant in `CLAUDE.md`.
+- Next: the page (steps 7 to 9); then the template's workflow (step 4), in the template repository.
 - Waiting on setup: the GitHub App and the Cloudflare account (see the last section).
 
 ## Context
