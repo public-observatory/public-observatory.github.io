@@ -2,35 +2,28 @@
 
 ## 1. The aim
 
-Research at the frontier now takes substantial compute, which is not available to everyone. The Public Observatory is shared infrastructure for opening it up: a public index of research agendas, each a well-posed question with its decomposition into smaller ones, worked on in public by people, laboratories and their agents. Those who hold compute take up a piece of an agenda, record what they found, failures included, and leave the agenda more precise than they found it. A reader who wants the state of a question reads one page rather than a literature.
+The stars are already out; an observatory draws the constellations. Agents can now do much of the exploratory work of research, and many groups set copies of the same models on the same famous problems without seeing one another's dead ends. What remains scarce is the choice of question and a common record of what was tried. The Public Observatory is shared infrastructure for both: an index of research agendas, each a question with its decomposition into smaller ones, worked on by people, laboratories and their agents.
 
-## 2. The scarce input is the question
+As agents take on more of the work, the researcher's role becomes that of a curator: posing questions, decomposing them well, and judging what has been established. An agenda is the record of that curation, and the Observatory makes it visible, so that those who hold compute can see where it would be well spent and what it bought.
 
-Agents can now do much of the exploratory work of research, so the scarce input is no longer labour but the choice of question. Open-problem lists record questions that are already sharp, but most of research consists of making questions sharp, and that work is rarely rewarded. Meanwhile many groups attack the same famous problems with copies of the same models, and none sees the others' dead ends.
-
-The Observatory should therefore pay for what it needs most. We intend to seek funding so that people are paid to write and maintain good agendas, and to review the solutions that others submit. Compute, models and money for the work itself remain with whoever holds them; the Observatory shows them where these would be well spent and what they bought.
-
-## 3. Principles
+## 2. Principles
 
 1. **Standards are stated.** An agenda's maintainers decide what enters it and state in advance what counts as a check. A claim is marked reproduced only when someone other than its author has checked it.
-2. **Nobody controls admission.** An agenda is any public repository with the topic `observatory-agenda`, listed wherever it lives.
-3. **Git is enough.** Problems and claims are issues; code, data and proofs are pull requests. The website is static, with no server to run, fund or trust.
-4. **Failure is part of the result.** A recorded dead end is worth as much to the next worker as a success.
-5. **Provenance is stated.** A claim says how its result was obtained, and ideally links a [Palomar](https://palomar-registry.org) submission.
-6. **People and agents on equal terms.** A claim is recorded through the same form whoever writes it, and judged by the same standard.
+2. **Nobody controls admission.** An agenda is any repository with the topic `observatory-agenda`, listed wherever it lives.
+3. **Private where needed.** An agenda may be private, shared with collaborators or a research community; it is shown only to those who can read its repository, and becomes public when its maintainers choose.
+4. **Questions from every science.** Physicists, biologists and others may pose agendas around problems they need solved, including problems no mathematician has yet adopted.
+5. **Git is enough.** Problems and claims are issues; code, data and proofs are pull requests. The website is static, with no server to run, fund or trust.
+6. **Failure is part of the result.** A recorded dead end is worth as much to the next worker as a success.
+7. **Provenance is stated.** A claim says how its result was obtained, and ideally links a [Palomar](https://palomar-registry.org) submission.
+8. **People and agents on equal terms.** A claim is recorded through the same form whoever writes it, and judged by the same standard.
 
-## 4. What it is not
+## 3. Coordination
 
-The Observatory is not a journal: it does not referee, rank authors or confer prestige. It runs no agents and allocates no compute. It does not replace the paper, which remains the right form for explaining a major result; an agenda is what the paper should cite.
+The record lives in the agendas; conversation lives in a Discord server, where contributors find collaborators, divide work on an agenda and discuss what to attempt next. Anything decided there that matters is written back as an issue.
 
-## 5. Stages
+## 4. Stages
 
-1. **A handful of agendas, worked on in earnest.** Begin where checking is cheap: computation with known answers, Lean mathematics, and reproducible machine-learning experiments. *Success:* at least three agendas, each with contributions from at least two people or laboratories besides its maintainers, and at least one claim in each reproduced by someone other than its author.
-2. **An advisory board and funding.** *Success:* an advisory board is in place, and funding is secured to pay agenda authors, maintainers and reviewers.
-3. **Paid agendas and reviews.** Payment follows from the quality of an agenda and of the reviews of claims made in it. *Success:* agendas written by people with no prior connection to the Observatory are funded and then worked on by others.
-4. **A record that checks itself.** Once maintainers can no longer follow every claim, claims should carry a command that anyone can re-run, and whether a claim stands should follow from the checks on record rather than from a label. *Success:* in one agenda, a refuted claim causes every claim built on it to be flagged automatically.
-5. **One list of work across all agendas.** The index ranks open problems and unchecked claims by expected cost, so that someone with an idle cluster can ask what to run. *Success:* a contributor with no prior connection to any agenda takes an item from the list and has the result merged.
-
-## 6. Open questions
-
-How payment can reward a good agenda without inviting agendas written for the reward; how reviewers are chosen and their work judged; how vague agendas should be discouraged without a central editor; when an agenda has outgrown issues and labels; and how an agent should find, before it starts, that its approach has already been tried.
+1. **A handful of agendas, worked on in earnest**, beginning where checking is cheap: computation with known answers, Lean mathematics and reproducible experiments.
+2. **Funding and an advisory board**, so that people are paid to write and maintain good agendas and to review the solutions others submit.
+3. **A record that checks itself.** Claims carry a command anyone can re-run, and whether a claim stands follows from the checks on record rather than from a label.
+4. **One list of work across all agendas**, ranked by expected cost, so that someone with idle compute can ask what to run.
