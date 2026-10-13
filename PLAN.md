@@ -1,5 +1,11 @@
 # Plan: private agendas, seen through GitHub sign-in
 
+## Progress
+
+- Done: steps 1 to 3, with their tests (`tests/test_site.py`), and the `snapshot` command in the README.
+- Next: the Worker (step 6) and its tests; then the page (steps 7 to 9); then the template's workflow (step 4), in the template repository.
+- Waiting on setup: the GitHub App and the Cloudflare account (see the last section).
+
 ## Context
 
 Principle 3 of `VISION.md` promises private agendas, shown only to those who can read their repositories. The hourly build indexes only public repositories into `agendas.json`, which GitHub Pages serves to everyone, so a private agenda can never be placed there. The aim is a sustainable sign-in with GitHub, after which a visitor sees the public agendas together with the private agendas whose repositories they can read.
@@ -16,7 +22,7 @@ The design rests on three decisions. Sign-in is a GitHub App together with a sin
 
 ### 2. One agenda as a function
 
-The body of the loop in `from_github` becomes `one(full, branch, token, get, **extra)`. It reads `agenda.json` and checks it with `agendas.problems`, then reads the issues and the README, and returns `entry(...)`. With a token it reads `agenda.json` through the contents API, which private repositories require and public ones permit. The public build and the snapshot below both use it.
+The body of the loop in `from_github` becomes `one(repo, token, get)`, where `repo` is a repository as the search API or `/repos/{full}` describes it. It reads `agenda.json` and checks it with `agendas.problems`, then reads the issues and the README, and returns `entry(...)`. A private repository's `agenda.json` is read through the contents API; a public one's is still read from `raw.githubusercontent.com`, which costs nothing against the rate limit. The public build skips any private repository its token happens to see. A README's download URL is kept without its query, since for a private repository the query holds a short-lived token.
 
 ### 3. Snapshot mode
 

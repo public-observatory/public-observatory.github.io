@@ -38,6 +38,7 @@ python3 site/agenda.py check /path/to/agenda/agenda.json       # exit 1, with th
 mkdir -p _site && cp site/*.html site/*.css site/*.js _site/
 cp -R site/content _site/
 python3 site/build.py local _site DIR...                       # index agendas in local directories, for a preview
+python3 site/build.py snapshot OUT OWNER/REPO                 # one private agenda's entry, as its own workflow builds it
 python3 -m http.server -d _site                                # and serve it
 ```
 

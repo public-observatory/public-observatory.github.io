@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,9 +42,6 @@ ISSUES = [
 
 
 class AgendaTest(unittest.TestCase):
-    def test_template_is_a_valid_agenda(self):
-        self.assertEqual(agenda.problems(json.loads((ROOT / "agenda-template" / "agenda.json").read_text())), [])
-
     def test_problems(self):
         self.assertEqual(agenda.problems(GOOD), [])
         self.assertEqual(agenda.problems([]), ["agenda.json must hold a JSON object"])
@@ -94,6 +92,21 @@ class IssuesTest(unittest.TestCase):
         self.assertEqual((q["text"], q["parents"]), ("Issue 8", []))
 
 
+SEARCH = "https://api.github.com/search/repositories?q=topic%3Aobservatory-agenda&per_page=100&page="
+README = {"content": base64.b64encode("# Motivation\n\nA café.".encode()).decode(),
+          "html_url": "https://github.com/Lab/primes/blob/main/docs/README.md",
+          "download_url": "https://raw.githubusercontent.com/Lab/primes/main/docs/README.md"}
+
+
+def server(files: dict):
+    """A `get` that answers from a dict of URLs, as GitHub would, and raises for any other URL."""
+    def get(url, token=None):
+        if url not in files:
+            raise OSError(f"404 {url}")
+        return json.dumps(files[url]).encode()
+    return get
+
+
 class IndexTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -131,31 +144,77 @@ class IndexTest(unittest.TestCase):
                 "stargazers_count": 3, "pushed_at": "2026-10-06T00:00:00Z"}
         page1 = [issue(100 + i, "question", "") for i in range(100)]
         files = {
-            "https://api.github.com/search/repositories?q=topic%3Aobservatory-agenda&per_page=100":
-                {"items": [repo, {**repo, "full_name": "Lab/gone"}, {**repo, "full_name": "Lab/bad"}]},
+            SEARCH + "1":
+                {"items": [repo, {**repo, "full_name": "Lab/gone"}, {**repo, "full_name": "Lab/bad"},
+                           {**repo, "full_name": "Lab/secret", "private": True}]},
             "https://raw.githubusercontent.com/Lab/primes/main/agenda.json": GOOD,
-            "https://api.github.com/repos/Lab/primes/readme": {
-                "content": base64.b64encode("# Motivation\n\nA café.".encode()).decode(),
-                "html_url": "https://github.com/Lab/primes/blob/main/docs/README.md",
-                "download_url": "https://raw.githubusercontent.com/Lab/primes/main/docs/README.md"},
+            "https://api.github.com/repos/Lab/primes/readme": README,
             "https://api.github.com/repos/Lab/primes/issues?state=all&per_page=100&page=1": page1,
             "https://api.github.com/repos/Lab/primes/issues?state=all&per_page=100&page=2": ISSUES,
             "https://raw.githubusercontent.com/Lab/bad/main/agenda.json": {**GOOD, "maintainers": []},
         }
-
-        def get(url, token=None):
-            if url not in files:
-                raise OSError(f"404 {url}")
-            return json.dumps(files[url]).encode()
-
+        get = server(files)
         entries, skipped = build.from_github(get=get)
         self.assertEqual([(e["repo"], e["stars"], e["summary"]["questions"]) for e in entries], [("Lab/primes", 3, 102)])
+        # The private repository is neither indexed nor reported: its name is not for the public index either.
         self.assertEqual(sorted(s.split(":")[0] for s in skipped), ["Lab/bad", "Lab/gone"])
         self.assertEqual(entries[0]["readme"]["text"], "# Motivation\n\nA café.")
         del files["https://api.github.com/repos/Lab/primes/readme"]
         entries, skipped = build.from_github(get=get)
         self.assertEqual(len(entries), 1)
         self.assertIsNone(entries[0]["readme"])
+
+
+    def test_search_reads_every_page_up_to_githubs_limit(self):
+        def repos(page, n):
+            return {"items": [{"full_name": f"Lab/r{page}-{i}", "default_branch": "main"} for i in range(n)]}
+        files = {SEARCH + "1": repos(1, 100), SEARCH + "2": repos(2, 7)}
+        _, skipped = build.from_github(get=server(files))
+        self.assertEqual(len(skipped), 107)
+        files = {SEARCH + str(p): repos(p, 100) for p in range(1, 12)}
+        _, skipped = build.from_github(get=server(files))
+        self.assertEqual(len(skipped), 1000)
+
+
+class SnapshotTest(unittest.TestCase):
+    """A private agenda's own workflow builds its entry, which must be what the index would hold."""
+
+    REPO = {"full_name": "Lab/primes", "default_branch": "main", "html_url": "https://github.com/Lab/primes",
+            "stargazers_count": 3, "pushed_at": "2026-10-06T00:00:00Z", "private": True}
+
+    def files(self, agenda=GOOD):
+        return {
+            "https://api.github.com/repos/Lab/primes": self.REPO,
+            "https://api.github.com/repos/Lab/primes/contents/agenda.json?ref=main":
+                {"content": base64.b64encode(json.dumps(agenda).encode()).decode()},
+            "https://api.github.com/repos/Lab/primes/readme":
+                {**README, "download_url": README["download_url"] + "?token=SECRET"},
+            "https://api.github.com/repos/Lab/primes/issues?state=all&per_page=100&page=1": ISSUES,
+        }
+
+    def test_snapshot_is_an_index_entry(self):
+        files = self.files()
+        e = build.snapshot("Lab/primes", "token", server(files))
+        files.update({SEARCH + "1": {"items": [{**self.REPO, "private": False}]},
+                      "https://raw.githubusercontent.com/Lab/primes/main/agenda.json": GOOD,
+                      "https://api.github.com/repos/Lab/primes/readme": README})
+        entries, _ = build.from_github(get=server(files))
+        self.assertEqual(e, entries[0])
+        self.assertNotIn("SECRET", json.dumps(e))
+
+    def test_snapshot_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = subprocess.run([sys.executable, str(ROOT / "site" / "build.py"), "snapshot", tmp],
+                                 capture_output=True, text=True)
+            self.assertEqual(run.returncode, 2)
+            with mock.patch.object(build, "snapshot", side_effect=ValueError("kind must be one of")):
+                self.assertEqual(build.main(["snapshot", tmp, "Lab/primes"]), 1)
+            with mock.patch.object(build, "snapshot", return_value={"repo": "Lab/primes"}):
+                self.assertEqual(build.main(["snapshot", tmp, "Lab/primes"]), 0)
+            self.assertEqual(json.loads((Path(tmp) / "entry.json").read_text()), {"repo": "Lab/primes"})
+        files = self.files({**GOOD, "kind": "wish"})
+        with self.assertRaisesRegex(ValueError, "kind must be one of"):
+            build.snapshot("Lab/primes", "token", server(files))
 
 
 if __name__ == "__main__":
