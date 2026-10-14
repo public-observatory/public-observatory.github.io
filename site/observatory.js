@@ -499,8 +499,8 @@ const Observatory = (() => {
     update();
   }
 
-  // The tree of problems drawn as a constellation around the README. Only the links between problems are drawn;
-  // hovering over a problem lights its path back to the README and names the problems on it. Positions follow
+  // The tree of problems drawn as a constellation around the README. Links are hidden until
+  // hovering or focusing a problem lights its path back to the README and names the problems on it. Positions follow
   // from the tree alone, and the same tree is always drawn the same way, so the picture says nothing the index does not.
   const SVG = "http://www.w3.org/2000/svg";
   function s(tag, attrs, ...children) {

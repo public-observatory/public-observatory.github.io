@@ -314,8 +314,7 @@ li.q[hidden] { display: none; }
 .sky { margin: 0 0 18px; display: flex; justify-content: center; padding: 12px 0; overflow: hidden; background: var(--stars-a) 0 0 / 420px 420px, var(--stars-b) 140px 60px / 263px 263px, radial-gradient(ellipse at center, var(--head-glow) 0%, var(--head) 70%); }
 .sky svg { display: block; max-width: 100%; height: auto; overflow: visible; }
 .sky line, .sky .star { transition: opacity .25s, stroke .25s, stroke-opacity .25s; }
-.sky line { stroke: var(--head-muted); stroke-opacity: 0.22; stroke-width: 0.8; }
-.sky line.trunk { stroke-opacity: 0; }
+.sky line { stroke: var(--head-muted); stroke-opacity: 0; stroke-width: 0.8; }
 .sky line.on { stroke: var(--head-gold); stroke-opacity: 0.85; stroke-width: 1.2; }
 .sky .star circle { fill: var(--head-gold); fill-opacity: 0.4; stroke: var(--head-gold); stroke-width: 1; filter: url(#glow); }
 .sky .star.s-answered circle, .sky .star.readme circle { fill-opacity: 1; }
@@ -323,7 +322,6 @@ li.q[hidden] { display: none; }
 .sky .star.s-retired circle { fill: var(--head-muted); stroke: var(--head-muted); fill-opacity: 0.2; }
 .sky .star text { fill: var(--head-ink); font-family: var(--sans); font-size: 12px; opacity: 0; pointer-events: none; transition: opacity .25s; paint-order: stroke; stroke: var(--head); stroke-width: 3px; stroke-linejoin: round; }
 .sky svg.lit .star:not(.on):not(.readme) { opacity: 0.4; }
-.sky svg.lit line:not(.on):not(.trunk) { stroke-opacity: 0.08; }
 .sky .star.on text { opacity: 1; }
 .sky .star.on circle { fill-opacity: 1; }
 .sky .star:focus-visible { outline: none; }
