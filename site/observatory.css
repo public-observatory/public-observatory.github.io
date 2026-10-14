@@ -30,6 +30,7 @@
   --head-muted: rgba(243, 236, 220, 0.72);
   --head-link: #a5b8ec;         /* links and labels on the landing-page head */
   --head-gold: #d9b86c;         /* details on an agenda head: badge, links, question bar */
+  --head-glow: #2a2f3a;         /* the light at the centre of the map of problems */
 
   /* Landing-page head: a night sky, top to bottom, with stars on top. */
   --sky-top: #05070f;
@@ -309,20 +310,24 @@ ul.tree ul .q { padding: 12px 0 2px; }
 .status.s-answered { background: none; color: var(--good); }
 li.q[hidden] { display: none; }
 
-/* The map of problems: a constellation on the night sky of the page heads. */
-.sky { margin: 0 0 18px; display: flex; justify-content: center; padding: 12px 0; background: var(--stars-a) 0 0 / 420px 420px, var(--stars-b) 140px 60px / 263px 263px, var(--head); }
+/* The map of problems: a constellation on the night sky of the page heads. Names appear only on the path that is lit. */
+.sky { margin: 0 0 18px; display: flex; justify-content: center; padding: 12px 0; overflow: hidden; background: var(--stars-a) 0 0 / 420px 420px, var(--stars-b) 140px 60px / 263px 263px, radial-gradient(ellipse at center, var(--head-glow) 0%, var(--head) 70%); }
 .sky svg { display: block; max-width: 100%; height: auto; overflow: visible; }
-.sky .edges line { stroke: var(--head-muted); stroke-opacity: 0.45; stroke-width: 1; }
-.sky .star circle { fill: var(--head); stroke: var(--head-gold); stroke-width: 1.5; transition: r .15s; }
-.sky .star.s-answered circle, .sky .star.readme circle { fill: var(--head-gold); }
-.sky .star.s-retired circle { stroke: var(--head-muted); stroke-dasharray: 2 2; }
-.sky .star text { fill: var(--head-muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; }
-.sky .star.readme text { fill: var(--head-ink); }
-.sky .star:hover circle, .sky .star:focus-visible circle { r: 7.5; }
-.sky .star.readme:hover circle, .sky .star.readme:focus-visible circle { r: 11; }
-.sky .star:hover text, .sky .star:focus-visible text { fill: var(--head-ink); }
+.sky line, .sky .star { transition: opacity .25s, stroke .25s, stroke-opacity .25s; }
+.sky line { stroke: var(--head-muted); stroke-opacity: 0.22; stroke-width: 0.8; }
+.sky line.trunk { stroke-opacity: 0; }
+.sky line.on { stroke: var(--head-gold); stroke-opacity: 0.85; stroke-width: 1.2; }
+.sky .star circle { fill: var(--head-gold); fill-opacity: 0.4; stroke: var(--head-gold); stroke-width: 1; filter: url(#glow); }
+.sky .star.s-answered circle, .sky .star.readme circle { fill-opacity: 1; }
+.sky .star.readme circle { fill: var(--head-ink); stroke: var(--head-ink); }
+.sky .star.s-retired circle { fill: var(--head-muted); stroke: var(--head-muted); fill-opacity: 0.2; }
+.sky .star text { fill: var(--head-ink); font-family: var(--sans); font-size: 12px; opacity: 0; pointer-events: none; transition: opacity .25s; paint-order: stroke; stroke: var(--head); stroke-width: 3px; stroke-linejoin: round; }
+.sky svg.lit .star:not(.on):not(.readme) { opacity: 0.4; }
+.sky svg.lit line:not(.on):not(.trunk) { stroke-opacity: 0.08; }
+.sky .star.on text { opacity: 1; }
+.sky .star.on circle { fill-opacity: 1; }
 .sky .star:focus-visible { outline: none; }
-@media (prefers-reduced-motion: reduce) { .sky .star circle { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .sky line, .sky .star, .sky .star text { transition: none; } }
 
 ol.list, ul.list { margin: 0; padding: 0; list-style: none; }
 .list li { padding: 14px 0; border-bottom: 1px solid var(--rule); }

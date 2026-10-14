@@ -52,7 +52,7 @@ test('problems show title, statement and optional motivation without field headi
   } finally { dom.window.close(); }
 });
 
-test('the map draws the README at the centre, problems around it and subproblems further out', async () => {
+test('the map links each problem to its parents, and hovering lights the path to the README', async () => {
   const base = { status: 'open', author: 'alice', created: '', url: '', motivation: '' };
   const dom = await render('', [
     { ...base, number: 1, parents: [], title: 'Core', text: 'Core' },
@@ -64,16 +64,24 @@ test('the map draws the README at the centre, problems around it and subproblems
   ]);
   try {
     const doc = dom.window.document;
-    const stars = [...doc.querySelectorAll('.sky a.star:not(.readme)')];
+    const star = (n) => doc.querySelector(`.sky a.star[data-n="${n}"]`);
+    const stars = [...doc.querySelectorAll('.sky a.star[data-n]')];
     assert.deepEqual(stars.map(a => a.getAttribute('href')), ['#q-1', '#q-2', '#q-3', '#q-4']);
     assert.ok(stars.every(a => doc.getElementById(a.getAttribute('href').slice(1))));
     assert.equal(doc.querySelector('.sky a.readme').getAttribute('href'), '#agenda');
-    assert.ok(stars[1].classList.contains('s-answered'));
-    // Two roots to the centre, #2 to #1, #3 to both its parents.
-    assert.equal(doc.querySelectorAll('.sky .edges line').length, 5);
-    const r = (a) => Math.hypot(+a.querySelector('circle').getAttribute('cx'), +a.querySelector('circle').getAttribute('cy'));
-    assert.ok(Math.abs(r(stars[0]) - r(stars[3])) < 1e-9 && r(stars[1]) > r(stars[0]) && r(stars[2]) > r(stars[1]));
-    assert.equal(stars[3].querySelector('title').textContent, '#4 · <b>x</b> (open)');
+    assert.equal(doc.querySelector('.sky a.readme text'), null);
+    assert.ok(star(2).classList.contains('s-answered'));
+    // #2 to #1 and #3 to both its parents are drawn; the two roots reach the README by lines shown only when lit.
+    const ends = (sel) => [...doc.querySelectorAll(sel)].map(l => l.dataset.ends).sort();
+    assert.deepEqual(ends('.sky line:not(.trunk)'), ['2 1', '3 1', '3 2']);
+    assert.deepEqual(ends('.sky line.trunk'), ['1 0', '4 0']);
+    for (const p of [0, 1, 2, 3]) for (const c of ['cx', 'cy']) assert.ok(Number.isFinite(+stars[p].querySelector('circle').getAttribute(c)));
+    star(3).dispatchEvent(new dom.window.Event('mouseenter'));
+    assert.deepEqual(stars.filter(a => a.classList.contains('on')).map(a => a.dataset.n), ['1', '2', '3']);
+    assert.deepEqual(ends('.sky line.on'), ['1 0', '2 1', '3 1', '3 2']);
+    star(3).dispatchEvent(new dom.window.Event('mouseleave'));
+    assert.equal(doc.querySelectorAll('.sky .on').length, 0);
+    assert.equal(star(4).querySelector('text').textContent, '#4 · <b>x</b>');
     assert.equal(doc.querySelector('.sky b'), null);
   } finally { dom.window.close(); }
 });

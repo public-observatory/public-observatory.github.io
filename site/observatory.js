@@ -499,9 +499,9 @@ const Observatory = (() => {
     update();
   }
 
-  // The tree of problems drawn as a constellation: the README at the centre, the problems that are part of no
-  // other on the first ring, and each subproblem one ring further out, within the arc of the problem it was
-  // first reached from. Positions follow from the tree alone, so the picture says nothing the index does not.
+  // The tree of problems drawn as a constellation around the README. Only the links between problems are drawn;
+  // hovering over a problem lights its path back to the README and names the problems on it. Positions follow
+  // from the tree alone, and the same tree is always drawn the same way, so the picture says nothing the index does not.
   const SVG = "http://www.w3.org/2000/svg";
   function s(tag, attrs, ...children) {
     const el = document.createElementNS(SVG, tag);
@@ -511,7 +511,7 @@ const Observatory = (() => {
   }
 
   function sky(roots, subs, questions) {
-    const RING = 64, seen = new Set();
+    const seen = new Set();
     function grow(q, depth) {
       seen.add(q.number);
       const t = { q, depth, kids: [] };
@@ -520,13 +520,12 @@ const Observatory = (() => {
       return t;
     }
     const trees = roots.filter((q) => !seen.has(q.number)).map((q) => grow(q, 0));
+    // A start on rings, each problem within its parent's arc; then a few hundred steps of springs along the
+    // links and repulsion between stars loosen it into something less like a diagram.
     const at = {};
-    let deepest = 0;
-    // Each problem gets an arc in proportion to the leaves below it, and sits at the arc's middle.
     function place(t, from, to) {
-      const a = (from + to) / 2, r = RING * (t.depth + 1);
+      const a = (from + to) / 2, r = 70 * (t.depth + 1);
       at[t.q.number] = [r * Math.cos(a), r * Math.sin(a)];
-      deepest = Math.max(deepest, t.depth);
       let start = from;
       for (const k of t.kids) { const end = start + (to - from) * k.leaves / t.leaves; place(k, start, end); start = end; }
     }
@@ -536,24 +535,72 @@ const Observatory = (() => {
 
     // A problem in a cycle of subproblems that no root reaches is left out, as it is from the list.
     const shown = Object.values(questions).filter((q) => at[q.number]);
-    const edges = [];
-    for (const q of shown) {
-      const ps = q.parents.filter((p) => at[p]);
-      for (const [x, y] of ps.length ? ps.map((p) => at[p]) : [[0, 0]])
-        edges.push(s("line", { x1: x, y1: y, x2: at[q.number][0], y2: at[q.number][1] }));
+    const ups = Object.fromEntries(shown.map((q) => [q.number, q.parents.filter((p) => at[p])]));
+    const links = shown.flatMap((q) => ups[q.number].length ? ups[q.number].map((p) => [q.number, p]) : [[q.number, 0]]);
+    const below = {};
+    // A star's size grows with the problems below it; a cycle among them is counted once.
+    function count(n) {
+      if (n in below) return below[n];
+      below[n] = 0;
+      return below[n] = shown.filter((x) => ups[x.number].includes(n)).reduce((k, x) => k + 1 + count(x.number), 0);
     }
+    at[0] = [0, 0];
+    const ids = shown.map((q) => q.number);
+    for (let i = 0; i < 300; i++) {
+      const step = 0.1 * (1 - i / 300), move = Object.fromEntries(ids.map((n) => [n, [0, 0]]));
+      for (const m of ids) for (const n of [0, ...ids]) {
+        if (m === n) continue;
+        const dx = at[m][0] - at[n][0], dy = at[m][1] - at[n][1], d2 = Math.max(dx * dx + dy * dy, 25);
+        move[m][0] += 2500 * dx / d2; move[m][1] += 2500 * dy / d2;
+      }
+      for (const [m, n] of links) {
+        const dx = at[n][0] - at[m][0], dy = at[n][1] - at[m][1], d = Math.hypot(dx, dy) || 1, f = (d - (n ? 50 : 80)) * 0.5 / d;
+        move[m][0] += f * dx; move[m][1] += f * dy;
+        if (n) { move[n][0] -= f * dx; move[n][1] -= f * dy; }
+      }
+      for (const n of ids) { at[n][0] += step * (move[n][0] - 0.02 * at[n][0]); at[n][1] += step * (move[n][1] - 0.02 * at[n][1]); }
+    }
+
+    // The picture is fitted to one frame, so that stars and names keep their size however far the layout spread.
+    const W = 340, H = 230, far = Math.max(...ids.map((n) => Math.max(Math.abs(at[n][0]) / W, Math.abs(at[n][1]) / H)), 1 / 1.6);
+    for (const n of ids) at[n] = [at[n][0] / far, at[n][1] / far];
+    const short = (text) => (text.length > 40 ? text.slice(0, 39).trimEnd() + "…" : text);
+    const line = ([m, n]) => s("line", { class: n ? null : "trunk", "data-ends": `${m} ${n}`, x1: at[n][0], y1: at[n][1], x2: at[m][0], y2: at[m][1] });
     const stars = shown.map((q) => {
-      const [x, y] = at[q.number];
-      return s("a", { href: `#q-${q.number}`, class: `star s-${q.status}` },
+      // A name points away from the README, unless the edge of the picture is too near on that side.
+      const [x, y] = at[q.number], r = 4 + 1.8 * Math.sqrt(count(q.number)), left = x < 0 ? x > 220 - W : x > W - 220;
+      return s("a", { href: `#q-${q.number}`, class: `star s-${q.status}`, "data-n": q.number },
         s("title", {}, `#${q.number} · ${q.title || q.text} (${q.status})`),
-        s("circle", { cx: x, cy: y, r: 5 }),
-        s("text", { x: x + 8, y: y - 8 }, `#${q.number}`));
+        s("circle", { cx: x, cy: y, r }),
+        s("text", { x: left ? x - r - 6 : x + r + 6, y, "text-anchor": left ? "end" : "start", "dominant-baseline": "middle" }, `#${q.number} · ${short(q.title || q.text)}`));
     });
-    const E = RING * (deepest + 1) + 36;
-    return h("figure", { class: "sky" }, s("svg", { viewBox: `${-E} ${-E} ${2 * E} ${2 * E}`, width: 2 * E * 1.4, role: "group", "aria-label": "Map of the problems" },
-      s("g", { class: "edges" }, ...edges),
-      s("a", { href: "#agenda", class: "star readme" }, s("title", {}, "The README"), s("circle", { cx: 0, cy: 0, r: 9 }), s("text", { x: 0, y: 24, "text-anchor": "middle" }, "README")),
-      ...stars));
+    const svg = s("svg", { viewBox: `${-W - 30} ${-H - 30} ${2 * W + 60} ${2 * H + 60}`, width: 2 * W + 60, role: "group", "aria-label": "Map of the problems" },
+      s("defs", {}, s("filter", { id: "glow", x: "-100%", y: "-100%", width: "300%", height: "300%" },
+        s("feGaussianBlur", { stdDeviation: 2.5, result: "b" }), s("feMerge", {}, s("feMergeNode", { in: "b" }), s("feMergeNode", { in: "SourceGraphic" })))),
+      s("g", { class: "edges" }, ...links.map(line)),
+      s("a", { href: "#agenda", class: "star readme" }, s("title", {}, "The README"), s("circle", { cx: 0, cy: 0, r: 9 })),
+      ...stars);
+
+    // The path from a problem to the README: the problem, every problem it is part of, and the links between them.
+    function light(n) {
+      const on = new Set();
+      const climb = (m) => { if (on.has(m)) return; on.add(m); ups[m].forEach(climb); };
+      if (n) climb(n);
+      svg.classList.toggle("lit", !!n);
+      for (const el of svg.querySelectorAll(".star[data-n]")) el.classList.toggle("on", on.has(+el.dataset.n));
+      for (const el of svg.querySelectorAll("line")) {
+        const [m, p] = el.dataset.ends.split(" ").map(Number);
+        el.classList.toggle("on", on.has(m) && (p === 0 || on.has(p)));
+      }
+    }
+    for (const el of svg.querySelectorAll(".star[data-n]")) {
+      const n = +el.dataset.n;
+      el.addEventListener("mouseenter", () => light(n));
+      el.addEventListener("focus", () => light(n));
+      el.addEventListener("mouseleave", () => light(0));
+      el.addEventListener("blur", () => light(0));
+    }
+    return h("figure", { class: "sky" }, svg);
   }
 
   // An issue's body is its first line, the question or claim itself, then any paragraphs that explain it.
