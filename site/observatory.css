@@ -309,6 +309,21 @@ ul.tree ul .q { padding: 12px 0 2px; }
 .status.s-answered { background: none; color: var(--good); }
 li.q[hidden] { display: none; }
 
+/* The map of problems: a constellation on the night sky of the page heads. */
+.sky { margin: 0 0 18px; display: flex; justify-content: center; padding: 12px 0; background: var(--stars-a) 0 0 / 420px 420px, var(--stars-b) 140px 60px / 263px 263px, var(--head); }
+.sky svg { display: block; max-width: 100%; height: auto; overflow: visible; }
+.sky .edges line { stroke: var(--head-muted); stroke-opacity: 0.45; stroke-width: 1; }
+.sky .star circle { fill: var(--head); stroke: var(--head-gold); stroke-width: 1.5; transition: r .15s; }
+.sky .star.s-answered circle, .sky .star.readme circle { fill: var(--head-gold); }
+.sky .star.s-retired circle { stroke: var(--head-muted); stroke-dasharray: 2 2; }
+.sky .star text { fill: var(--head-muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; }
+.sky .star.readme text { fill: var(--head-ink); }
+.sky .star:hover circle, .sky .star:focus-visible circle { r: 7.5; }
+.sky .star.readme:hover circle, .sky .star.readme:focus-visible circle { r: 11; }
+.sky .star:hover text, .sky .star:focus-visible text { fill: var(--head-ink); }
+.sky .star:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) { .sky .star circle { transition: none; } }
+
 ol.list, ul.list { margin: 0; padding: 0; list-style: none; }
 .list li { padding: 14px 0; border-bottom: 1px solid var(--rule); }
 .list li:last-child { border-bottom: 0; }
@@ -336,7 +351,7 @@ footer.site a:hover { color: var(--ink); }
 .nowrap { white-space: nowrap; }
 
 /* ==========================================================================
-   Star textures (landing page only)
+   Star textures (the landing page and the map of problems)
    Two tiled SVGs of dots, layered in .hero::before. Nothing here is meant to be edited by hand.
    ========================================================================== */
 :root {

@@ -52,6 +52,32 @@ test('problems show title, statement and optional motivation without field headi
   } finally { dom.window.close(); }
 });
 
+test('the map draws the README at the centre, problems around it and subproblems further out', async () => {
+  const base = { status: 'open', author: 'alice', created: '', url: '', motivation: '' };
+  const dom = await render('', [
+    { ...base, number: 1, parents: [], title: 'Core', text: 'Core' },
+    { ...base, number: 2, parents: [1], title: 'Sub', text: 'Sub', status: 'answered' },
+    { ...base, number: 3, parents: [1, 2], title: 'Shared', text: 'Shared' },
+    { ...base, number: 4, parents: [], title: '<b>x</b>', text: '<b>x</b>' },
+    { ...base, number: 5, parents: [6], title: 'Cycle', text: 'Cycle' },
+    { ...base, number: 6, parents: [5], title: 'Cycle', text: 'Cycle' },
+  ]);
+  try {
+    const doc = dom.window.document;
+    const stars = [...doc.querySelectorAll('.sky a.star:not(.readme)')];
+    assert.deepEqual(stars.map(a => a.getAttribute('href')), ['#q-1', '#q-2', '#q-3', '#q-4']);
+    assert.ok(stars.every(a => doc.getElementById(a.getAttribute('href').slice(1))));
+    assert.equal(doc.querySelector('.sky a.readme').getAttribute('href'), '#agenda');
+    assert.ok(stars[1].classList.contains('s-answered'));
+    // Two roots to the centre, #2 to #1, #3 to both its parents.
+    assert.equal(doc.querySelectorAll('.sky .edges line').length, 5);
+    const r = (a) => Math.hypot(+a.querySelector('circle').getAttribute('cx'), +a.querySelector('circle').getAttribute('cy'));
+    assert.ok(Math.abs(r(stars[0]) - r(stars[3])) < 1e-9 && r(stars[1]) > r(stars[0]) && r(stars[2]) > r(stars[1]));
+    assert.equal(stars[3].querySelector('title').textContent, '#4 · <b>x</b> (open)');
+    assert.equal(doc.querySelector('.sky b'), null);
+  } finally { dom.window.close(); }
+});
+
 test('GitHub footnotes render as references with local citations and return links', async () => {
   const dom = await render(`# Fibres
 

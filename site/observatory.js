@@ -499,6 +499,63 @@ const Observatory = (() => {
     update();
   }
 
+  // The tree of problems drawn as a constellation: the README at the centre, the problems that are part of no
+  // other on the first ring, and each subproblem one ring further out, within the arc of the problem it was
+  // first reached from. Positions follow from the tree alone, so the picture says nothing the index does not.
+  const SVG = "http://www.w3.org/2000/svg";
+  function s(tag, attrs, ...children) {
+    const el = document.createElementNS(SVG, tag);
+    for (const [k, v] of Object.entries(attrs || {})) if (v !== undefined && v !== null) el.setAttribute(k, v);
+    el.append(...children);
+    return el;
+  }
+
+  function sky(roots, subs, questions) {
+    const RING = 64, seen = new Set();
+    function grow(q, depth) {
+      seen.add(q.number);
+      const t = { q, depth, kids: [] };
+      for (const x of subs(q)) if (!seen.has(x.number)) t.kids.push(grow(x, depth + 1));
+      t.leaves = t.kids.reduce((n, k) => n + k.leaves, 0) || 1;
+      return t;
+    }
+    const trees = roots.filter((q) => !seen.has(q.number)).map((q) => grow(q, 0));
+    const at = {};
+    let deepest = 0;
+    // Each problem gets an arc in proportion to the leaves below it, and sits at the arc's middle.
+    function place(t, from, to) {
+      const a = (from + to) / 2, r = RING * (t.depth + 1);
+      at[t.q.number] = [r * Math.cos(a), r * Math.sin(a)];
+      deepest = Math.max(deepest, t.depth);
+      let start = from;
+      for (const k of t.kids) { const end = start + (to - from) * k.leaves / t.leaves; place(k, start, end); start = end; }
+    }
+    const total = trees.reduce((n, t) => n + t.leaves, 0);
+    let start = -1.5 * Math.PI;
+    for (const t of trees) { const end = start + 2 * Math.PI * t.leaves / total; place(t, start, end); start = end; }
+
+    // A problem in a cycle of subproblems that no root reaches is left out, as it is from the list.
+    const shown = Object.values(questions).filter((q) => at[q.number]);
+    const edges = [];
+    for (const q of shown) {
+      const ps = q.parents.filter((p) => at[p]);
+      for (const [x, y] of ps.length ? ps.map((p) => at[p]) : [[0, 0]])
+        edges.push(s("line", { x1: x, y1: y, x2: at[q.number][0], y2: at[q.number][1] }));
+    }
+    const stars = shown.map((q) => {
+      const [x, y] = at[q.number];
+      return s("a", { href: `#q-${q.number}`, class: `star s-${q.status}` },
+        s("title", {}, `#${q.number} · ${q.title || q.text} (${q.status})`),
+        s("circle", { cx: x, cy: y, r: 5 }),
+        s("text", { x: x + 8, y: y - 8 }, `#${q.number}`));
+    });
+    const E = RING * (deepest + 1) + 36;
+    return h("figure", { class: "sky" }, s("svg", { viewBox: `${-E} ${-E} ${2 * E} ${2 * E}`, width: 2 * E * 1.4, role: "group", "aria-label": "Map of the problems" },
+      s("g", { class: "edges" }, ...edges),
+      s("a", { href: "#agenda", class: "star readme" }, s("title", {}, "The README"), s("circle", { cx: 0, cy: 0, r: 9 }), s("text", { x: 0, y: 24, "text-anchor": "middle" }, "README")),
+      ...stars));
+  }
+
   // An issue's body is its first line, the question or claim itself, then any paragraphs that explain it.
   const paragraphs = (text) => String(text).split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).map((p) => h("p", {}, rich(p)));
 
@@ -524,7 +581,7 @@ const Observatory = (() => {
     function node(q) {
       if (seen.has(q.number)) return h("li", { class: "q note" }, `(see #${q.number} above)`);
       seen.add(q.number);
-      const li = h("li", { class: "q", "data-status": q.status },
+      const li = h("li", { class: "q", id: `q-${q.number}`, "data-status": q.status },
         h("div", { class: "q-line" }, mark(q.status), h("div", { class: "q-text" },
           h("h3", { class: "q-title" }, rich(q.title || q.text)),
           q.title && q.text !== q.title ? h("div", { class: "q-statement" }, paragraphs(q.text)) : null,
@@ -553,6 +610,7 @@ const Observatory = (() => {
         onclick: (ev) => { only(v); for (const b of ev.target.parentNode.children) b.setAttribute("aria-pressed", String(b === ev.target)); } }, label))) : null;
     const tree = h("section", { id: "questions" },
       h("h2", {}, "Problems", h("small", {}, `${open} open · ${s.answered} answered`)),
+      treeList && sky(roots, (q) => entry.questions.filter((x) => x.parents.includes(q.number)), questions),
       filter, treeList || h("p", { class: "note" }, "No problems yet. Pose the first problem."));
 
     const list = (id, title, items, row, none) => h("section", { id }, h("h2", {}, title, h("small", {}, plural(items.length, "claim"))),
